@@ -1,0 +1,7 @@
+#!/bin/bash
+set -ex
+
+cd /home/ec2-user/circle-ghc-workshop
+
+npm install
+npm run webpack
