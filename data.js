@@ -4,8 +4,8 @@ var data = [
     "questions": [
       {
         "points": 100,
-        "question": "New update 2",
-        "answer": "Updated 2 !!"
+        "question": "UPDATE ONE PUSH",
+        "answer": "UPDATED!"
       },
       {
         "points": 200,

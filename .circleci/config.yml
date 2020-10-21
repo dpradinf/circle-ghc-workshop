@@ -1,0 +1,66 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: amazonlinux
+    steps:
+      - checkout
+  test:
+    docker:
+      - image: amazonlinux
+    steps:
+      - checkout
+      - run:
+          name: Get Pip
+          command: |
+            curl -O https://bootstrap.pypa.io/get-pip.py && python get-pip.py
+      - run:
+          name: Pip install AWS CLI
+          command: |
+            pip install awscli
+      - run:
+          name: Validate CFN templates via AWS CLI
+          command: |
+            for i in cfn/*.yml; do aws cloudformation validate-template --template-body file://$i --region us-west-2 ; done
+  deploy:
+    docker:
+      - image: amazonlinux
+    steps:
+      - checkout
+      - run:
+          name: Get Pip
+          command: |
+            curl -O https://bootstrap.pypa.io/get-pip.py && python get-pip.py
+      - run:
+          name: Pip install AWS CLI
+          command: |
+            pip install awscli
+      - run:
+          name: Deploy Shared Resources via AWS CLI
+          command: |
+            if ! aws cloudformation describe-stacks --stack-name ghc-workshop-shared-resources --region us-west-2 ;  then
+              aws cloudformation deploy --stack-name ghc-workshop-shared-resources --template-file cfn/shared_resources.yml --capabilities CAPABILITY_NAMED_IAM --parameter-overrides WorkshopName="ghc-workshop" --region us-west-2
+            else
+              echo -e "Stack exists..."
+            fi
+          no_output_timeout: 20m
+      - run:
+          name: Deploy Application via AWS CLI
+          command: |
+            aws cloudformation deploy --stack-name ghc-workshop-application-$CIRCLE_PROJECT_USERNAME --template-file cfn/application.yml --parameter-overrides SharedResourceStack="ghc-workshop-shared-resources" --region us-west-2 || exit 0
+          no_output_timeout: 20m
+workflows:
+  version: 2
+  build_approve_deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+#      - approve:
+#          type: approval
+#          requires:
+#            - test
+      - deploy:
+          requires:
+            - test
